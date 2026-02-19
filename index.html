@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cleaning Kiosk</title>
+    <style>
+        /* --- UoM THEME & BASE STYLES --- */
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f3f2f1; margin: 0; display: flex; flex-direction: column; height: 100vh; }
+        
+        /* UoM PURPLE HEADER */
+        header { background: #660099; color: white; padding: 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
+        h1 { margin: 0; font-size: 26px; letter-spacing: 0.5px; }
+        #user-badge { background: rgba(255,255,255,0.2); padding: 8px 20px; border-radius: 30px; font-weight: bold; display: none; border: 1px solid rgba(255,255,255,0.4); }
+
+        .container { flex: 1; padding: 30px; overflow-y: auto; display: flex; flex-direction: column; align-items: center; }
+
+        /* SECTIONS */
+        .section-title { width: 100%; max-width: 1000px; margin: 30px 0 15px 0; color: #660099; border-bottom: 2px solid #ddd; padding-bottom: 5px; font-size: 1.4rem; }
+        
+        /* GRID LAYOUT */
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 25px; width: 100%; max-width: 1000px; }
+        
+        /* CARDS */
+        .card { background: white; padding: 15px; border-radius: 12px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 2px solid transparent; transition: all 0.2s; display: flex; flex-direction: column; justify-content: space-between; }
+        .card:hover { transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .card.selected { border-color: #660099; background-color: #fbf5ff; }
+        
+        .card h4 { margin: 10px 0; font-size: 1rem; color: #333; height: 40px; display: flex; align-items: center; justify-content: center; }
+        .card img { width: 100%; height: 120px; object-fit: contain; margin-bottom: 5px; }
+
+        /* STANDARD CONTROLS (+/-) */
+        .qty-control { display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: auto; }
+        .btn-qty { width: 35px; height: 35px; border-radius: 50%; border: none; font-size: 18px; cursor: pointer; background: #eee; color: #333; transition: 0.2s; }
+        .btn-qty:hover { background: #dcdcdc; }
+        .btn-qty:active { background: #ccc; }
+        .qty-val { font-weight: bold; font-size: 18px; width: 30px; text-align: center; }
+
+        /* GLOVE CONTROLS (S M L) */
+        .glove-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; margin-top: auto; }
+        .btn-size { background: white; border: 1px solid #ccc; padding: 5px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; }
+        .btn-size:hover { background: #eee; }
+        .btn-size.active { background: #660099; color: white; border-color: #660099; }
+        .size-qty { display: block; font-size: 10px; font-weight: normal; margin-top: 2px; }
+
+        /* FOOTER */
+        footer { background: white; padding: 20px 40px; border-top: 1px solid #ccc; display: flex; justify-content: space-between; align-items: center; width: 100%; box-sizing: border-box; position: fixed; bottom: 0; left: 0; z-index: 100; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); }
+        #submit-btn { background: #28a745; color: white; border: none; padding: 15px 50px; font-size: 22px; border-radius: 8px; cursor: pointer; opacity: 0.5; pointer-events: none; transition: 0.3s; }
+        #submit-btn.active { opacity: 1; pointer-events: all; box-shadow: 0 4px 10px rgba(40,167,69,0.4); }
+
+        .hidden { display: none !important; }
+        
+        /* LOGIN SCREEN */
+        #login-screen { text-align: center; margin-top: 80px; }
+        .scan-icon { font-size: 100px; color: #660099; margin-bottom: 20px; display:block; animation: float 3s ease-in-out infinite; }
+        @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-10px); } 100% { transform: translateY(0px); } }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>🧹 Cleaning Chemicals & Equipment</h1>
+        <div id="user-badge">👤 <span id="username-display"></span></div>
+    </header>
+
+    <div id="login-screen" class="container">
+        <div class="scan-icon">📡</div>
+        <h2 style="color: #444;">Tap Staff Card to Start</h2>
+        <p style="color: #666;">Hold your card against the reader.</p>
+        
+        <button onclick="testLogin()" style="margin-top:50px; padding: 10px 20px; background: #eee; border: 1px solid #ccc; cursor: pointer; border-radius: 5px;">
+            [TEST ONLY: Simulate Scan]
+        </button>
+    </div>
+
+    <div id="order-screen" class="container hidden" style="justify-content: start; padding-bottom: 100px;">
+        <div style="width:100%; max-width:1000px; display:flex; justify-content:space-between; align-items:center;">
+            <p>Tap items to add to cart.</p>
+            <button onclick="logout()" style="background:none; border:none; color:#d9534f; cursor:pointer; font-weight:bold; font-size:16px;">❌ Cancel / Logout</button>
+        </div>
+
+        <h3 class="section-title">Chemicals (750ml Spray)</h3>
+        <div class="grid">
+            <div class="card" id="card-Degreaser750">
+                <img src="https://via.placeholder.com/150?text=Degreaser+750ml" alt="Degreaser">
+                <h4>Kitchen Degreaser (750ml)</h4>
+                <div class="qty-control">
+                    <button class="btn-qty" onclick="changeQty('Kitchen Degreaser 750ml', -1, 'Degreaser750')">-</button>
+                    <span id="qty-Degreaser750" class="qty-val">0</span>
+                    <button class="btn-qty" onclick="changeQty('Kitchen Degreaser 750ml', 1, 'Degreaser750')">+</button>
+                </div>
+            </div>
+
+            <div class="card" id="card-Bactericidal750">
+                <img src="https://via.placeholder.com/150?text=Bactericidal+750ml" alt="Bactericidal">
+                <h4>Foaming Bactericidal (750ml)</h4>
+                <div class="qty-control">
+                    <button class="btn-qty" onclick="changeQty('Foaming Bactericidal 750ml', -1, 'Bactericidal750')">-</button>
+                    <span id="qty-Bactericidal750" class="qty-val">0</span>
+                    <button class="btn-qty" onclick="changeQty('Foaming Bactericidal 750ml', 1, 'Bactericidal750')">+</button>
+                </div>
+            </div>
+
+            <div class="card" id="card-SprayWipe">
+                <img src="https://via.placeholder.com/150?text=Spray+Wipe" alt="Spray Wipe">
+                <h4>Spray & Wipe (750ml)</h4>
+                <div class="qty-control">
+                    <button class="btn-qty" onclick="changeQty('Spray and Wipe 750ml', -1, 'SprayWipe')">-</button>
+                    <span id="qty-SprayWipe" class="qty-val">0</span>
+                    <button class="btn-qty" onclick="changeQty('Spray and Wipe 750ml', 1, 'SprayWipe')">+</button>
+                </div>
+            </div>
+        </div>
+
+        <h3 class="section-title">Refills & Bulk (5L / 1L)</h3>
+        <div class="grid">
+            <div class="card" id="card-Degreaser5L">
+                <img src="https://via.placeholder.com/150?text=Degreaser+5L" alt="Degreaser 5L">
+                <h4>Kitchen Degreaser (5L)</h4>
+                <div class="qty-control">
+                    <button class="btn-qty" onclick="changeQty('Kitchen Degreaser 5L', -1, 'Degreaser5L')">-</button>
+                    <span id="qty-Degreaser5L" class="qty-val">0</span>
+                    <button class="btn-qty" onclick="changeQty('Kitchen Degreaser 5L', 1, 'Degreaser5L')">+</button>
+                </div>
+            </div>
+
+            <div class="card" id="card-Bactericidal5L">
+                <img src="https://via.placeholder.com/150?text=Bactericidal+5L" alt="Bactericidal 5L">
+                <h4>Foaming Bactericidal (5L)</h4>
+                <div class="qty-control">
+                    <button class="btn-qty" onclick="changeQty('Foaming Bactericidal 5L', -1, 'Bactericidal5L')">-</button>
+                    <span id="qty-Bactericidal5L" class="qty-val">0</span>
+                    <button class="btn-qty" onclick="changeQty('Foaming Bactericidal 5L', 1, 'Bactericidal5L')">+</button>
+                </div>
+            </div>
+
+            <div class="card" id="card-Toilet1L">
+                <img src="https://via.placeholder.com/150?text=Toilet+1L" alt="Toilet Cleaner">
+                <h4>Toilet Cleaner (1L)</h4>
+                <div class="qty-control">
+                    <button class="btn-qty" onclick="changeQty('Toilet Cleaner 1L', -1, 'Toilet1L')">-</button>
+                    <span id="qty-Toilet1L" class="qty-val">0</span>
+                    <button class="btn-qty" onclick="changeQty('Toilet Cleaner 1L', 1, 'Toilet1L')">+</button>
+                </div>
+            </div>
+        </div>
+
+        <h3 class="section-title">Gloves (Select Size)</h3>
+        <div class="grid">
+            <div class="card" id="card-GlovesRed">
+                <img src="https://via.placeholder.com/150/ffcccc/ff0000?text=Red+Gloves" alt="Red Gloves">
+                <h4>Red Gloves</h4>
+                <div class="glove-grid">
+                    <button class="btn-size" id="btn-Red-S" onclick="addGlove('Red', 'S')">S <span id="qty-Red-S" class="size-qty"></span></button>
+                    <button class="btn-size" id="btn-Red-M" onclick="addGlove('Red', 'M')">M <span id="qty-Red-M" class="size-qty"></span></button>
+                    <button class="btn-size" id="btn-Red-L" onclick="addGlove('Red', 'L')">L <span id="qty-Red-L" class="size-qty"></span></button>
+                </div>
+            </div>
+
+            <div class="card" id="card-GlovesBlue">
+                <img src="https://via.placeholder.com/150/ccccff/0000ff?text=Blue+Gloves" alt="Blue Gloves">
+                <h4>Blue Gloves</h4>
+                <div class="glove-grid">
+                    <button class="btn-size" id="btn-Blue-S" onclick="addGlove('Blue', 'S')">S <span id="qty-Blue-S" class="size-qty"></span></button>
+                    <button class="btn-size" id="btn-Blue-M" onclick="addGlove('Blue', 'M')">M <span id="qty-Blue-M" class="size-qty"></span></button>
+                    <button class="btn-size" id="btn-Blue-L" onclick="addGlove('Blue', 'L')">L <span id="qty-Blue-L" class="size-qty"></span></button>
+                </div>
+            </div>
+
+            <div class="card" id="card-GlovesGreen">
+                <img src="https://via.placeholder.com/150/ccffcc/008000?text=Green+Gloves" alt="Green Gloves">
+                <h4>Green Gloves</h4>
+                <div class="glove-grid">
+                    <button class="btn-size" id="btn-Green-S" onclick="addGlove('Green', 'S')">S <span id="qty-Green-S" class="size-qty"></span></button>
+                    <button class="btn-size" id="btn-Green-M" onclick="addGlove('Green', 'M')">M <span id="qty-Green-M" class="size-qty"></span></button>
+                    <button class="btn-size" id="btn-Green-L" onclick="addGlove('Green', 'L')">L <span id="qty-Green-L" class="size-qty"></span></button>
+                </div>
+            </div>
+
+            <div class="card" id="card-GlovesYellow">
+                <img src="https://via.placeholder.com/150/ffffcc/cccc00?text=Yellow+Gloves" alt="Yellow Gloves">
+                <h4>Yellow Gloves</h4>
+                <div class="glove-grid">
+                    <button class="btn-size" id="btn-Yellow-S" onclick="addGlove('Yellow', 'S')">S <span id="qty-Yellow-S" class="size-qty"></span></button>
+                    <button class="btn-size" id="btn-Yellow-M" onclick="addGlove('Yellow', 'M')">M <span id="qty-Yellow-M" class="size-qty"></span></button>
+                    <button class="btn-size" id="btn-Yellow-L" onclick="addGlove('Yellow', 'L')">L <span id="qty-Yellow-L" class="size-qty"></span></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer id="footer" class="hidden">
+        <div style="display:flex; flex-direction:column;">
+            <span style="font-size:14px; color:#666;">Total Items:</span>
+            <span id="total-text" style="font-size:24px; font-weight:bold; color:#660099;">0</span>
+        </div>
+        <button id="submit-btn" onclick="submitOrder()">Submit Order ➤</button>
+    </footer>
+
+    <script>
+        // ==========================================
+        // 1. PASTE YOUR URLS HERE
+        // ==========================================
+        const LOGIN_URL = "https://defaultc152cb07614e4abb818af035cfa91a.77.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/f3fb5831da324047820cb54054d60901/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=HLu2zidynj9UKKp55ezLSUxRD8y3i8uce8cH1S-puTY"; 
+        const ORDER_URL = "https://defaultc152cb07614e4abb818af035cfa91a.77.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/43e1871f2e0047f78b3d74a4cdf0c84a/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=yj27RbJqDPmGUcvIyuriJXTglzhihPZ8e4rdHQ3rkAQ";
+
+        // ==========================================
+        // 2. APP LOGIC
+        // ==========================================
+        let currentUser = "";
+        let cart = {};
+
+        async function startNFC() {
+            if ('NDEFReader' in window) {
+                try {
+                    const ndef = new NDEFReader();
+                    await ndef.scan();
+                    ndef.onreading = event => handleLogin(event.serialNumber);
+                } catch (error) { console.log("NFC Error: " + error); }
+            }
+        }
+        startNFC();
+
+        async function handleLogin(nfcId) {
+            if(LOGIN_URL.includes("PASTE")) { alert("Missing Login URL!"); return; }
+            const icon = document.querySelector('.scan-icon');
+            icon.innerText = "⏳";
+            
+            try {
+                const response = await fetch(LOGIN_URL, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ nfc_id: nfcId })
+                });
+                const data = await response.json();
+
+                if (data.found === true) {
+                    currentUser = data.name;
+                    document.getElementById('username-display').innerText = currentUser;
+                    document.getElementById('user-badge').style.display = "block";
+                    document.getElementById('login-screen').classList.add('hidden');
+                    document.getElementById('order-screen').classList.remove('hidden');
+                    document.getElementById('footer').classList.remove('hidden');
+                } else {
+                    alert("Card ID (" + nfcId + ") not found.");
+                    icon.innerText = "📡";
+                }
+            } catch (error) {
+                alert("Network Error: " + error);
+                icon.innerText = "📡";
+            }
+        }
+
+        // --- STANDARD ITEM LOGIC ---
+        function changeQty(itemName, delta, uiID) {
+            if (!cart[itemName]) cart[itemName] = 0;
+            cart[itemName] += delta;
+            if (cart[itemName] < 0) cart[itemName] = 0;
+
+            // Update UI
+            document.getElementById(`qty-${uiID}`).innerText = cart[itemName];
+            
+            // Highlight Card
+            const card = document.getElementById(`card-${uiID}`);
+            if(cart[itemName] > 0) card.classList.add('selected');
+            else card.classList.remove('selected');
+
+            updateFooter();
+        }
+
+        // --- GLOVE LOGIC (Click button to add 1) ---
+        function addGlove(color, size) {
+            const itemName = `${color} Gloves (${size})`; // e.g., "Red Gloves (M)"
+            
+            if (!cart[itemName]) cart[itemName] = 0;
+            cart[itemName] += 1; // Add 1 per click
+
+            // Visual Feedback
+            const btnId = `btn-${color}-${size}`;
+            const qtyId = `qty-${color}-${size}`;
+            
+            document.getElementById(qtyId).innerText = "x" + cart[itemName];
+            document.getElementById(btnId).classList.add('active');
+            
+            // Highlight the whole card
+            document.getElementById(`card-Gloves${color}`).classList.add('selected');
+
+            updateFooter();
+        }
+
+        function updateFooter() {
+            const total = Object.values(cart).reduce((a, b) => a + b, 0);
+            document.getElementById('total-text').innerText = total;
+            const btn = document.getElementById('submit-btn');
+            if (total > 0) btn.classList.add('active');
+            else btn.classList.remove('active');
+        }
+
+        async function submitOrder() {
+            if(ORDER_URL.includes("PASTE")) { alert("Missing Order URL!"); return; }
+            const btn = document.getElementById('submit-btn');
+            btn.innerText = "Sending...";
+            
+            let itemsToSend = [];
+            for (const [key, value] of Object.entries(cart)) {
+                if (value > 0) itemsToSend.push({ item_name: key, qty: value });
+            }
+
+            try {
+                const response = await fetch(ORDER_URL, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        staff_name: currentUser,
+                        cart: itemsToSend
+                    })
+                });
+
+                if (response.ok) {
+                    alert("Order Submitted for " + currentUser);
+                    logout();
+                } else {
+                    alert("Server Error");
+                    btn.innerText = "Submit Order ➤";
+                }
+            } catch (error) {
+                alert("Network Error");
+                btn.innerText = "Submit Order ➤";
+            }
+        }
+
+        function logout() {
+            location.reload(); // Easiest way to reset everything perfectly
+        }
+
+        function testLogin() {
+            // REPLACE WITH YOUR REAL ID
+            handleLogin("041437E2DF7680"); 
+        }
+    </script>
+</body>
+</html>
