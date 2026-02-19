@@ -52,7 +52,8 @@
         
         /* LOGIN SCREEN */
         #login-screen { text-align: center; margin-top: 80px; }
-        .scan-icon { font-size: 100px; color: #660099; margin-bottom: 20px; display:block; animation: float 3s ease-in-out infinite; }
+        /* Notice the cursor:pointer added here to show it's clickable */
+        .scan-icon { font-size: 100px; color: #660099; margin-bottom: 20px; display:block; animation: float 3s ease-in-out infinite; cursor: pointer; }
         @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-10px); } 100% { transform: translateY(0px); } }
     </style>
 </head>
@@ -64,13 +65,9 @@
     </header>
 
     <div id="login-screen" class="container">
-        <div class="scan-icon">📡</div>
-        <h2 style="color: #444;">Tap Staff Card to Start</h2>
-        <p style="color: #666;">Hold your card against the reader.</p>
-        
-        <button onclick="testLogin()" style="margin-top:50px; padding: 10px 20px; background: #eee; border: 1px solid #ccc; cursor: pointer; border-radius: 5px;">
-            [TEST ONLY: Simulate Scan]
-        </button>
+        <div class="scan-icon" onclick="startNFC()">📡</div>
+        <h2 style="color: #444;">Tap the Icon to Turn on Scanner</h2>
+        <p style="color: #666;">Then hold your card against the back of the tablet.</p>
     </div>
 
     <div id="order-screen" class="container hidden" style="justify-content: start; padding-bottom: 100px;">
@@ -198,34 +195,39 @@
     </footer>
 
     <script>
-        // ==========================================
-        // 1. PASTE YOUR URLS HERE
-        // ==========================================
         const LOGIN_URL = "https://defaultc152cb07614e4abb818af035cfa91a.77.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/f3fb5831da324047820cb54054d60901/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=HLu2zidynj9UKKp55ezLSUxRD8y3i8uce8cH1S-puTY"; 
         const ORDER_URL = "https://defaultc152cb07614e4abb818af035cfa91a.77.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/43e1871f2e0047f78b3d74a4cdf0c84a/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=yj27RbJqDPmGUcvIyuriJXTglzhihPZ8e4rdHQ3rkAQ";
 
-        // ==========================================
-        // 2. APP LOGIC
-        // ==========================================
         let currentUser = "";
         let cart = {};
 
+        // NEW NFC START FUNCTION
         async function startNFC() {
             if ('NDEFReader' in window) {
                 try {
                     const ndef = new NDEFReader();
                     await ndef.scan();
+                    // Give visual feedback that scanner is active
+                    document.querySelector('.scan-icon').innerText = "📱";
+                    document.querySelector('h2').innerText = "Scanner Ready!";
+                    
                     ndef.onreading = event => handleLogin(event.serialNumber);
-                } catch (error) { console.log("NFC Error: " + error); }
+                } catch (error) { 
+                    alert("NFC Error: You must be on an Android tablet, using Chrome, and the URL must be HTTPS."); 
+                    console.log("NFC Error: " + error);
+                }
+            } else {
+                alert("NFC is not supported on this browser or device.");
             }
         }
-        startNFC();
 
         async function handleLogin(nfcId) {
-            if(LOGIN_URL.includes("PASTE")) { alert("Missing Login URL!"); return; }
             const icon = document.querySelector('.scan-icon');
             icon.innerText = "⏳";
             
+            // Clean up the formatting of the serial number just in case
+            nfcId = nfcId.replace(/:/g, '').toUpperCase(); 
+
             try {
                 const response = await fetch(LOGIN_URL, {
                     method: 'POST',
@@ -244,23 +246,22 @@
                 } else {
                     alert("Card ID (" + nfcId + ") not found.");
                     icon.innerText = "📡";
+                    document.querySelector('h2').innerText = "Tap the Icon to Turn on Scanner";
                 }
             } catch (error) {
                 alert("Network Error: " + error);
                 icon.innerText = "📡";
+                document.querySelector('h2').innerText = "Tap the Icon to Turn on Scanner";
             }
         }
 
-        // --- STANDARD ITEM LOGIC ---
         function changeQty(itemName, delta, uiID) {
             if (!cart[itemName]) cart[itemName] = 0;
             cart[itemName] += delta;
             if (cart[itemName] < 0) cart[itemName] = 0;
 
-            // Update UI
             document.getElementById(`qty-${uiID}`).innerText = cart[itemName];
             
-            // Highlight Card
             const card = document.getElementById(`card-${uiID}`);
             if(cart[itemName] > 0) card.classList.add('selected');
             else card.classList.remove('selected');
@@ -268,21 +269,18 @@
             updateFooter();
         }
 
-        // --- GLOVE LOGIC (Click button to add 1) ---
         function addGlove(color, size) {
-            const itemName = `${color} Gloves (${size})`; // e.g., "Red Gloves (M)"
+            const itemName = `${color} Gloves (${size})`; 
             
             if (!cart[itemName]) cart[itemName] = 0;
-            cart[itemName] += 1; // Add 1 per click
+            cart[itemName] += 1; 
 
-            // Visual Feedback
             const btnId = `btn-${color}-${size}`;
             const qtyId = `qty-${color}-${size}`;
             
             document.getElementById(qtyId).innerText = "x" + cart[itemName];
             document.getElementById(btnId).classList.add('active');
             
-            // Highlight the whole card
             document.getElementById(`card-Gloves${color}`).classList.add('selected');
 
             updateFooter();
@@ -297,7 +295,6 @@
         }
 
         async function submitOrder() {
-            if(ORDER_URL.includes("PASTE")) { alert("Missing Order URL!"); return; }
             const btn = document.getElementById('submit-btn');
             btn.innerText = "Sending...";
             
@@ -330,12 +327,7 @@
         }
 
         function logout() {
-            location.reload(); // Easiest way to reset everything perfectly
-        }
-
-        function testLogin() {
-            // REPLACE WITH YOUR REAL ID
-            handleLogin("041437E2DF7680"); 
+            location.reload(); 
         }
     </script>
 </body>
