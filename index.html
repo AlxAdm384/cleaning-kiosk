@@ -237,8 +237,8 @@
                 const data = await response.json();
 
                 if (data.found === true) {
-                    currentUser = data.name;
-                    document.getElementById('username-display').innerText = currentUser;
+                    currentUser = nfcId; // We now store the NFC ID secretly, not the name
+                    document.getElementById('username-display').innerText = "Verified Staff"; // GDPR safe display
                     document.getElementById('user-badge').style.display = "block";
                     document.getElementById('login-screen').classList.add('hidden');
                     document.getElementById('order-screen').classList.remove('hidden');
@@ -332,5 +332,6 @@
     </script>
 </body>
 </html>
+
 
 
