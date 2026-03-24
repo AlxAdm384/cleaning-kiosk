@@ -194,20 +194,36 @@
         <button id="submit-btn" onclick="submitOrder()">Submit Order ➤</button>
     </footer>
 
-    <script>
+<script>
         const LOGIN_URL = "https://defaultc152cb07614e4abb818af035cfa91a.77.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/f3fb5831da324047820cb54054d60901/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=HLu2zidynj9UKKp55ezLSUxRD8y3i8uce8cH1S-puTY"; 
         const ORDER_URL = "https://defaultc152cb07614e4abb818af035cfa91a.77.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/43e1871f2e0047f78b3d74a4cdf0c84a/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=yj27RbJqDPmGUcvIyuriJXTglzhihPZ8e4rdHQ3rkAQ";
 
         let currentUser = "";
         let cart = {};
 
-        // NEW NFC START FUNCTION
+        // ---------------------------------------------------------
+        // --- NEW: FULLY KIOSK BROWSER AUTOMATIC NFC LISTENER ---
+        // ---------------------------------------------------------
+        function onNfcTagScanned(tagId, tagData) {
+            // Give visual feedback on the screen
+            document.querySelector('.scan-icon').innerText = "⏳";
+            document.querySelector('h2').innerText = "Verifying Card...";
+            
+            // Clean up the formatting of the serial number (removes colons)
+            const cleanNfcId = String(tagId).replace(/:/g, "").toUpperCase();
+            
+            // Send it directly to your login function
+            handleLogin(cleanNfcId);
+        }
+
+        // ---------------------------------------------------------
+        // --- OLD: STANDARD CHROME NFC (Still here for testing) ---
+        // ---------------------------------------------------------
         async function startNFC() {
             if ('NDEFReader' in window) {
                 try {
                     const ndef = new NDEFReader();
                     await ndef.scan();
-                    // Give visual feedback that scanner is active
                     document.querySelector('.scan-icon').innerText = "📱";
                     document.querySelector('h2').innerText = "Scanner Ready!";
                     
@@ -326,12 +342,14 @@
             }
         }
 
+        // --- SAFETY HUB LOGIC ---
+        function openSafetyHub() { document.getElementById('safety-modal').classList.remove('hidden'); }
+        function closeSafetyHub() { document.getElementById('safety-modal').classList.add('hidden'); }
+
         function logout() {
             location.reload(); 
         }
     </script>
-</body>
-</html>
 
 
 
