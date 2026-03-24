@@ -4,5 +4,17 @@
   "start_url": "./index.html",
   "display": "fullscreen",
   "background_color": "#ffffff",
-  "theme_color": "#660099"
+  "theme_color": "#660099",
+  "icons": [
+    {
+      "src": "degreaser750.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg"
+    },
+    {
+      "src": "degreaser750.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg"
+    }
+  ]
 }
